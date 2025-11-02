@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Content Writing Assistant</title>
+    <!-- Tailwind CSS ကို အသုံးပြုထားပါတယ် -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Font (Inter) ကို အသုံးပြုထားပါတယ် -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Inter font ကို default အနေနဲ့ သတ်မှတ်ထားပါတယ် */
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Tone of Voice ခလုတ်များအတွက် 'selected' state */
+        .tone-btn.selected {
+            background-color: white;
+            color: #E53E3E; /* red-600 */
+            font-weight: 700;
+            transform: scale(1.05);
+            box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.1);
+        }
+        /* Word Limit ခလုတ်များအတွက် 'selected' state */
+        .limit-btn.selected {
+            background-color: white;
+            color: #3B82F6; /* blue-500 */
+            font-weight: 700;
+            transform: scale(1.05);
+            box-shadow: 0 4px 14px 0 rgba(0, 0, 0, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-white flex items-center justify-center min-h-screen p-4">
+
+    <div class="max-w-xl w-full p-8 rounded-lg">
+        
+        <!-- ခေါင်းစဉ်ကြီး -->
+        <h1 class="text-3xl font-bold text-center text-white mb-10">
+            Content Writing Assistant
+        </h1>
+
+        <!-- Content ထုတ်လုပ်ရန် Form -->
+        <form id="content-form">
+            <!-- Headline Input -->
+            <div class="mb-6">
+                <label for="headline" class="block text-lg font-medium text-gray-200 mb-2">Headline</label>
+                <input type="text" id="headline"
+                       class="w-full p-4 bg-white text-gray-900 placeholder-gray-500 rounded-lg border-2 border-transparent focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                       placeholder="ဥပမာ - AI ဖြင့် အနာဂတ်ကို ပုံဖော်ခြင်း">
+            </div>
+
+            <!-- Tone of Voice ရွေးချယ်ရန် -->
+            <div class="mb-8">
+                <label class="block text-lg font-medium text-gray-200 mb-4">Tone of Voice</label>
+                <!-- ခလုတ်များ -->
+                <div class="grid grid-cols-3 gap-4" id="tone-selector">
+                    <button type="button" 
+                            class="tone-btn p-4 rounded-lg text-center font-semibold transition-all duration-200 cursor-pointer bg-white/20 text-white hover:bg-white/30 selected"
+                            data-tone="Sales">
+                        Sales
+                    </button>
+                    <button type="button" 
+                            class="tone-btn p-4 rounded-lg text-center font-semibold transition-all duration-200 cursor-pointer bg-white/20 text-white hover:bg-white/30"
+                            data-tone="Branding">
+                        Branding
+                    </button>
+                    <button type="button" 
+                            class="tone-btn p-4 rounded-lg text-center font-semibold transition-all duration-200 cursor-pointer bg-white/20 text-white hover:bg-white/30"
+                            data-tone="Knowledge sharing">
+                        Knowledge sharing
+                    </button>
+                </div>
+            </div>
+
+            <!-- Word Limit ရွေးချယ်ရန် (အသစ်ထည့်သွင်းထားသည်) -->
+            <div class="mb-8">
+                <label class="block text-lg font-medium text-gray-200 mb-4">Word Limit</label>
+                <div class="grid grid-cols-2 gap-4" id="word-limit-selector">
+                    <button type="button" 
+                            class="limit-btn p-4 rounded-lg text-center font-semibold transition-all duration-200 cursor-pointer bg-white/20 text-white hover:bg-white/30 selected"
+                            data-limit="Short">
+                        Short (100-200 words)
+                    </button>
+                    <button type="button" 
+                            class="limit-btn p-4 rounded-lg text-center font-semibold transition-all duration-200 cursor-pointer bg-white/20 text-white hover:bg-white/30"
+                            data-limit="Long">
+                        Long (201-300 words)
+                    </button>
+                </div>
+            </div>
+
+            <!-- အမှားအယွင်းပြသရန်နေရာ -->
+            <div id="error-message" class="hidden text-red-400 text-center my-4"></div>
+
+            <!-- Generate Button -->
+            <button type="submit" id="generate-btn"
+                    class="w-full bg-blue-500 hover:bg-blue-600 text-white text-lg font-bold p-4 rounded-lg transition-all duration-200 flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed">
+                Generate Content
+            </button>
+        </form>
+
+        <!-- Loading Indicator (Spinner) -->
+        <div id="loading" class="hidden text-center my-6">
+            <svg class="animate-spin h-8 w-8 text-white mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            <p class="mt-2">AI က content ကို ရေးသားနေပါတယ်...</p>
+        </div>
+
+        <!-- AI မှ ရေးသားပြီးသော Content ပြသရန်နေရာ -->
+        <div id="output" class="hidden w-full bg-white/10 text-white p-6 rounded-lg mt-8 whitespace-pre-wrap">
+            <!-- Generated content will appear here -->
+        </div>
+
+        <!-- Facebook Icon Link -->
+        <div class="text-center mt-10">
+            <a href="https://www.facebook.com" target="_blank" rel="noopener noreferrer"
+               class="inline-block text-blue-500 hover:text-blue-400 transition-colors duration-200"
+               aria-label="Facebook Page">
+                <svg class="w-10 h-10" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M14 13.5H16.5L17.5 9.5H14V7.5C14 6.47 14 5.5 16 5.5H17.5V2.14C17.174 2.097 15.943 2 14.643 2C11.928 2 10 3.657 10 6.7V9.5H7V13.5H10V22H14V13.5Z"/>
+                </svg>
+            </a>
+        </div>
+
+    </div>
+
+    <script type="module">
+        // --- DOM Elements ---
+        const form = document.getElementById('content-form');
+        const headlineInput = document.getElementById('headline');
+        const toneSelector = document.getElementById('tone-selector');
+        const toneButtons = document.querySelectorAll('.tone-btn');
+        const wordLimitSelector = document.getElementById('word-limit-selector'); // အသစ်
+        const limitButtons = document.querySelectorAll('.limit-btn'); // အသစ်
+        const generateBtn = document.getElementById('generate-btn');
+        const loadingIndicator = document.getElementById('loading'); // အမှားပြင်ဆင်ချက်- variable ကို သတ်မှတ်ပါ
+        const outputDiv = document.getElementById('output'); // အမှားပြင်ဆင်ချက်- variable ကို သတ်မှတ်ပါ
+        const errorMessage = document.getElementById('error-message'); // အမှားပြင်ဆင်ချက်- variable ကို သတ်မှတ်ပါ
+
+        // --- State ---
+        let selectedTone = 'Sales'; // Default tone
+        let selectedLimit = 'Short'; // Default word limit (အသစ်)
+        let isLoading = false;
+
+        // --- Gemini API Configuration ---
+        const apiKey = ""; // API key ကို ဒီနေရာမှာ ထည့်ပါ (သို့သော် လုံခြုံရေးအရ server-side တွင် ထားသင့်သည်)
+                         // Canvas ပတ်ဝန်းကျင်တွင်၊ ဤအရာသည် အလိုအလျောက် အလုပ်လုပ်ပါမည်။
+        
+        // --- အမှားပြင်ဆင်ချက်- Canvas environment နှင့် ကိုက်ညီသော model ကို အသုံးပြုရန် ---
+        const modelName = 'gemini-2.5-flash-preview-09-2025'; // 'gemini-1.5-flash-latest' မှ ပြန်လည်ပြောင်းလဲထားသည်
+        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+
+        // Spinner SVG (ခလုတ်အတွင်းထည့်ရန်)
+        const buttonSpinner = `
+            <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+            Generating...
+        `;
+        const originalButtonText = 'Generate Content';
+
+        // --- Event Listeners ---
+
+        /**
+         * Tone of Voice ခလုတ်များကို နှိပ်သည့်အခါ
+         */
+        toneSelector.addEventListener('click', (e) => {
+            const clickedButton = e.target.closest('.tone-btn');
+            if (!clickedButton) return;
+
+            // 'selected' class ကို အားလုံးမှ ဖယ်ရှားပါ
+            toneButtons.forEach(btn => btn.classList.remove('selected'));
+            
+            // နှိပ်လိုက်သော ခလုတ်ကို 'selected' ထည့်ပါ
+            clickedButton.classList.add('selected');
+            
+            // state ကို update လုပ်ပါ
+            selectedTone = clickedButton.dataset.tone;
+        });
+
+        /**
+         * Word Limit ခလုတ်များကို နှိပ်သည့်အခါ (အသစ်)
+         */
+        wordLimitSelector.addEventListener('click', (e) => {
+            const clickedButton = e.target.closest('.limit-btn');
+            if (!clickedButton) return;
+
+            // 'selected' class ကို အားလုံးမှ ဖယ်ရှားပါ
+            limitButtons.forEach(btn => btn.classList.remove('selected'));
+            
+            // နှိပ်လိုက်သော ခလုတ်ကို 'selected' ထည့်ပါ
+            clickedButton.classList.add('selected');
+            
+            // state ကို update လုပ်ပါ
+            selectedLimit = clickedButton.dataset.limit;
+        });
+
+        /**
+         * Form Submit လုပ်သည့်အခါ (Generate Content ခလုတ်နှိပ်သည့်အခါ)
+         */
+        form.addEventListener('submit', (e) => {
+            e.preventDefault(); // Form ကို default submit မလုပ်အောင် တားဆီးပါ
+            if (isLoading) return;
+
+            const headline = headlineInput.value.trim();
+
+            // Input validation
+            if (!headline) {
+                showError('Headline ကို ကျေးဇူးပြု၍ ဖြည့်စွက်ပါ။');
+                headlineInput.focus();
+                return;
+            }
+
+            // AI ကို ခေါ်ယူပါ
+            callGeminiAPI(headline, selectedTone, selectedLimit); // selectedLimit ကို ထည့်ပေးလိုက်ပါ
+        });
+
+        // --- Functions ---
+
+        /**
+         * API ကို ခေါ်ယူရန် (Exponential Backoff ဖြင့်)
+         * @param {string} headline - သုံးစွဲသူ ထည့်သွင်းလိုက်သော ခေါင်းစဉ်
+         * @param {string} tone - သုံးစွဲသူ ရွေးချယ်လိုက်သော Tone of Voice
+         * @param {string} limit - သုံးစွဲသူ ရွေးချယ်လိုက်သော Word Limit ('Short' or 'Long')
+         */
+        async function callGeminiAPI(headline, tone, limit) { // limit parameter အသစ်
+            setLoading(true);
+
+            // Word limit ကို သတ်မှတ်ပါ
+            const minWords = (limit === 'Short') ? 100 : 201;
+            const maxWords = (limit === 'Short') ? 200 : 300;
+
+            // AI အတွက် System Instruction (AI က ဘယ်လိုပြုမူရမလဲဆိုတာ ပြောပြခြင်း)
+            const systemPrompt = `You are an expert copywriter and content creator based in Myanmar. 
+Your task is to generate compelling marketing or informational content based on a headline, a desired tone of voice, and a specific word count limit. 
+Adhere strictly to the requested tone. If the headline is in Burmese, write the content in Burmese. If it's in English, write in English.
+**CRITICAL REQUIREMENT:** The total word count of your entire response MUST be between ${minWords} and ${maxWords} words.`;
+
+            // AI အတွက် User Query (AI ကို ဘာလုပ်ခိုင်းမလဲဆိုတာ ပြောပြခြင်း)
+            let userQuery = '';
+
+            if (tone === 'Knowledge sharing') {
+                // "Knowledge sharing" tone အတွက် သီးသန့် prompt
+                userQuery = `
+                Headline: "${headline}"
+                Tone: "Knowledge sharing"
+                Word Limit: ${minWords} - ${maxWords} words.
+
+                Generate content based on the headline with the following exact structure:
+                1.  **Headline:** A catchy, finalized version of the headline.
+                2.  **Paragraphs:** 2-3 informative paragraphs explaining the topic in detail. **This "Paragraphs" section MUST have a total word count between ${minWords} and ${maxWords} words.**
+                3.  **CTA:** A clear call to action (e.g., "Learn more!", "Share your thoughts!").
+                4.  **Hashtags:** 3-5 relevant hashtags.
+
+                **CRITICAL REQUIREMENT:** The word count for the "Paragraphs" section (item 2) is the most important instruction. It **must** be between ${minWords} and ${maxWords} words. Do not make it shorter or longer.
+                
+                Ensure the output is well-formatted, easy to read, and in the correct language (Burmese or English, based on the input headline).
+                `;
+            } else {
+                // "Sales" သို့မဟုတ် "Branding" အတွက် မူလ query
+                userQuery = `Headline: "${headline}"\nTone: "${tone}"\nWord Limit: ${minWords} - ${maxWords} words.\n\nGenerate the content for this headline. **CRITICAL REQUIREMENT: The total word count of your generated content must be strictly between ${minWords} and ${maxWords} words.**`;
+            }
+
+
+            // API payload
+            const payload = {
+                contents: [{ 
+                    role: "user",
+                    parts: [{ text: userQuery }]
+                }],
+                systemInstruction: {
+                    parts: [{ text: systemPrompt }]
+                },
+                generationConfig: {
+                    temperature: 0.7,
+                    topK: 40,
+                    topP: 0.95,
+                    maxOutputTokens: 2048, // --- အမှားပြင်ဆင်ချက်- Token limit ကို 1024 မှ 2048 သို့ တိုးမြှင့်ထားသည် ---
+                }
+            };
+
+            try {
+                // API ကို fetchWithBackoff ဖြင့် ခေါ်ယူပါ
+                const response = await fetchWithBackoff(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API error: ${response.status} ${response.statusText}`);
+                }
+
+                const result = await response.json();
+                
+                // AI မှ ပြန်လာသော text
+                const candidate = result.candidates?.[0]; // candidate ကို အရင်ဖမ်းထားပါ
+                const generatedText = candidate?.content?.parts?.[0]?.text;
+
+                if (generatedText) {
+                    displayOutput(generatedText);
+                } else {
+                    // --- အမှားပြင်ဆင်ချက်- ပိုမိုအသေးစိတ်သော error ကို ပြသရန် ---
+                    let detailedError = 'AI ထံမှ အကြောင်းအရာ မရရှိပါ။';
+                    if (!candidate) {
+                        detailedError += ' (API မှ candidate data မပါဝင်ပါ)';
+                    } else if (candidate.finishReason && candidate.finishReason !== 'STOP') {
+                        detailedError += ` (Generation stopped: ${candidate.finishReason})`;
+                    } else if (result.promptFeedback) {
+                         detailedError += ` (Prompt Feedback: ${result.promptFeedback.blockReason})`;
+                    } else {
+                        detailedError += ' (API response structure အမှားအယွင်းရှိနေပါသည်)';
+                    }
+                    console.error('Detailed API Error:', detailedError, JSON.stringify(result, null, 2));
+                    showError(detailedError + ' ကျေးဇူးပြု၍ ထပ်မံကြိုးစားပါ။');
+                }
+
+            } catch (error) {
+                console.error('Error calling Gemini API:', error);
+                showError(`An error occurred: ${error.message}`);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        /**
+         * API ခေါ်ဆိုမှုများအတွက် Exponential Backoff ဖြင့် ထပ်ခါထပ်ခါ ကြိုးစားသော function
+         */
+        async function fetchWithBackoff(url, options, retries = 3, delay = 1000) {
+            try {
+                const response = await fetch(url, options);
+                // 429 (Too Many Requests) သို့မဟုတ် 5xx (Server Error) များဆိုလျှင် ထပ်ကြိုးစားပါ
+                if (!response.ok && (response.status === 429 || response.status >= 500)) {
+                    throw new Error(`Retryable error: ${response.status}`);
+                }
+                return response;
+            } catch (error) {
+                if (retries > 0) {
+                    // console.log(`Retrying... attempts left: ${retries}. Waiting ${delay}ms`);
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                    // နောက်တစ်ကြိမ်ကြိုးစားလျှင် delay ကို နှစ်ဆတိုးပါ
+                    return fetchWithBackoff(url, options, retries - 1, delay * 2);
+                } else {
+                    // ကြိုးစားမှု အကြိမ်အရေအတွက် ပြည့်သွားလျှင် error ကို throw လုပ်ပါ
+                    throw error;
+                }
+            }
+        }
+
+        /**
+         * Loading state ကို သတ်မှတ်ရန်
+         * @param {boolean} state - true (loading) သို့မဟုတ် false (not loading)
+         */
+        function setLoading(state) {
+            isLoading = state;
+            if (state) {
+                generateBtn.disabled = true;
+                generateBtn.innerHTML = buttonSpinner;
+                loadingIndicator.classList.remove('hidden');
+                outputDiv.classList.add('hidden');
+                errorMessage.classList.add('hidden');
+            } else {
+                generateBtn.disabled = false;
+                generateBtn.innerHTML = originalButtonText;
+                loadingIndicator.classList.add('hidden');
+            }
+        }
+
+        /**
+         * အမှားအယွင်းများကို ပြသရန်
+         * @param {string} message - ပြသလိုသော error message
+         */
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorMessage.classList.remove('hidden');
+        }
+
+        /**
+         * AI မှ ရလာသော ရလဒ်ကို ပြသရန်
+         * @param {string} text - AI မှ generate လုပ်လိုက်သော content
+         */
+        function displayOutput(text) {
+            outputDiv.textContent = text;
+            outputDiv.classList.remove('hidden');
+        }
+
+    </script>
+</body>
+</html>
+
