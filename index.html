@@ -35,7 +35,28 @@
 </head>
 <body class="bg-slate-900 text-white flex items-center justify-center min-h-screen p-4">
 
-    <div class="max-w-xl w-full p-8 rounded-lg">
+    <!-- ==== Login Screen (အသစ်ထည့်သွင်းထားသည်) ==== -->
+    <div id="login-screen" class="max-w-md w-full p-8 rounded-lg">
+        <h1 class="text-3xl font-bold text-center text-white mb-8">
+            API Key ဖြင့် Login ဝင်ပါ
+        </h1>
+        <form id="login-form">
+            <div class="mb-4">
+                <label for="api-key-input" class="block text-lg font-medium text-gray-200 mb-2">Gemini API Key</label>
+                <input type="password" id="api-key-input"
+                       class="w-full p-4 bg-white text-gray-900 placeholder-gray-500 rounded-lg border-2 border-transparent focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                       placeholder="AIza...">
+            </div>
+            <div id="login-error" class="hidden text-red-400 text-center my-4"></div>
+            <button type="submit" id="login-btn"
+                    class="w-full bg-blue-500 hover:bg-blue-600 text-white text-lg font-bold p-4 rounded-lg transition-all duration-200">
+                Login
+            </button>
+        </form>
+    </div>
+
+    <!-- ==== Main App Container (Default အနေဖြင့် ဖျောက်ထားသည်) ==== -->
+    <div id="app-container" class="max-w-xl w-full p-8 rounded-lg hidden">
         
         <!-- ခေါင်းစဉ်ကြီး -->
         <h1 class="text-3xl font-bold text-center text-white mb-10">
@@ -130,30 +151,37 @@
     </div>
 
     <script type="module">
+        // --- Login Screen DOM Elements (အသစ်) ---
+        const loginScreen = document.getElementById('login-screen');
+        const loginForm = document.getElementById('login-form');
+        const apiKeyInput = document.getElementById('api-key-input');
+        const loginBtn = document.getElementById('login-btn');
+        const loginError = document.getElementById('login-error');
+        
+        // --- App Container DOM Element (အသစ်) ---
+        const appContainer = document.getElementById('app-container');
+
         // --- DOM Elements ---
         const form = document.getElementById('content-form');
         const headlineInput = document.getElementById('headline');
         const toneSelector = document.getElementById('tone-selector');
         const toneButtons = document.querySelectorAll('.tone-btn');
-        const wordLimitSelector = document.getElementById('word-limit-selector'); // အသစ်
-        const limitButtons = document.querySelectorAll('.limit-btn'); // အသစ်
+        const wordLimitSelector = document.getElementById('word-limit-selector'); 
+        const limitButtons = document.querySelectorAll('.limit-btn'); 
         const generateBtn = document.getElementById('generate-btn');
-        const loadingIndicator = document.getElementById('loading'); // အမှားပြင်ဆင်ချက်- variable ကို သတ်မှတ်ပါ
-        const outputDiv = document.getElementById('output'); // အမှားပြင်ဆင်ချက်- variable ကို သတ်မှတ်ပါ
-        const errorMessage = document.getElementById('error-message'); // အမှားပြင်ဆင်ချက်- variable ကို သတ်မှတ်ပါ
+        const loadingIndicator = document.getElementById('loading'); 
+        const outputDiv = document.getElementById('output'); 
+        const errorMessage = document.getElementById('error-message'); 
 
         // --- State ---
         let selectedTone = 'Sales'; // Default tone
-        let selectedLimit = 'Short'; // Default word limit (အသစ်)
+        let selectedLimit = 'Short'; // Default word limit
         let isLoading = false;
 
-        // --- Gemini API Configuration ---
-        const apiKey = ""; // API key ကို ဒီနေရာမှာ ထည့်ပါ (သို့သော် လုံခြုံရေးအရ server-side တွင် ထားသင့်သည်)
-                         // Canvas ပတ်ဝန်းကျင်တွင်၊ ဤအရာသည် အလိုအလျောက် အလုပ်လုပ်ပါမည်။
-        
-        // --- အမှားပြင်ဆင်ချက်- Canvas environment နှင့် ကိုက်ညီသော model ကို အသုံးပြုရန် ---
-        const modelName = 'gemini-2.5-flash-preview-09-2025'; // 'gemini-1.5-flash-latest' မှ ပြန်လည်ပြောင်းလဲထားသည်
-        const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+        // --- Gemini API Configuration (ပြင်ဆင်ထားသည်) ---
+        let apiKey = ""; // User ထည့်မှန်းမယ့် Key
+        let apiUrl = ""; // User ထည့်မှန်းမယ့် Key
+        const modelName = 'gemini-2.5-flash-preview-09-2025';
 
         // Spinner SVG (ခလုတ်အတွင်းထည့်ရန်)
         const buttonSpinner = `
@@ -166,6 +194,28 @@
         const originalButtonText = 'Generate Content';
 
         // --- Event Listeners ---
+
+        /**
+         * Login Form Submit လုပ်သည့်အခါ (အသစ်)
+         */
+        loginForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const key = apiKeyInput.value.trim();
+            
+            if (!key) {
+                loginError.textContent = 'API Key ကို ကျေးဇူးပြု၍ ဖြည့်စွက်ပါ။';
+                loginError.classList.remove('hidden');
+                return;
+            }
+
+            // API Key နှင့် URL ကို သတ်မှတ်ပါ
+            apiKey = key;
+            apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${modelName}:generateContent?key=${apiKey}`;
+            
+            // Login screen ကို ဖျောက်ပြီး app ကို ပြပါ
+            loginScreen.classList.add('hidden');
+            appContainer.classList.remove('hidden');
+        });
 
         /**
          * Tone of Voice ခလုတ်များကို နှိပ်သည့်အခါ
@@ -185,7 +235,7 @@
         });
 
         /**
-         * Word Limit ခလုတ်များကို နှိပ်သည့်အခါ (အသစ်)
+         * Word Limit ခလုတ်များကို နှိပ်သည့်အခါ
          */
         wordLimitSelector.addEventListener('click', (e) => {
             const clickedButton = e.target.closest('.limit-btn');
@@ -218,7 +268,7 @@
             }
 
             // AI ကို ခေါ်ယူပါ
-            callGeminiAPI(headline, selectedTone, selectedLimit); // selectedLimit ကို ထည့်ပေးလိုက်ပါ
+            callGeminiAPI(headline, selectedTone, selectedLimit); 
         });
 
         // --- Functions ---
@@ -229,7 +279,7 @@
          * @param {string} tone - သုံးစွဲသူ ရွေးချယ်လိုက်သော Tone of Voice
          * @param {string} limit - သုံးစွဲသူ ရွေးချယ်လိုက်သော Word Limit ('Short' or 'Long')
          */
-        async function callGeminiAPI(headline, tone, limit) { // limit parameter အသစ်
+        async function callGeminiAPI(headline, tone, limit) { 
             setLoading(true);
 
             // Word limit ကို သတ်မှတ်ပါ
@@ -281,12 +331,12 @@ Adhere strictly to the requested tone. If the headline is in Burmese, write the 
                     temperature: 0.7,
                     topK: 40,
                     topP: 0.95,
-                    maxOutputTokens: 2048, // --- အမှားပြင်ဆင်ချက်- Token limit ကို 1024 မှ 2048 သို့ တိုးမြှင့်ထားသည် ---
+                    maxOutputTokens: 2048, 
                 }
             };
 
             try {
-                // API ကို fetchWithBackoff ဖြင့် ခေါ်ယူပါ
+                // API ကို fetchWithBackoff ဖြင့် ခေါ်ယူပါ (apiUrl ကို global မှ သုံးပါ)
                 const response = await fetchWithBackoff(apiUrl, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -294,19 +344,23 @@ Adhere strictly to the requested tone. If the headline is in Burmese, write the 
                 });
 
                 if (!response.ok) {
-                    throw new Error(`API error: ${response.status} ${response.statusText}`);
+                    // 401 (Unauthorized) သို့မဟုတ် 403 (Forbidden) error များဆိုလျှင် API key အမှား ဖြစ်နိုင်သည်
+                    if (response.status === 401 || response.status === 403) {
+                         showError(`API Key အမှား (Error: ${response.status}). Key ကိုစစ်ဆေးပြီး စာမျက်နှာကို refresh လုပ်ပါ။`);
+                    } else {
+                        throw new Error(`API error: ${response.status} ${response.statusText}`);
+                    }
                 }
 
                 const result = await response.json();
                 
                 // AI မှ ပြန်လာသော text
-                const candidate = result.candidates?.[0]; // candidate ကို အရင်ဖမ်းထားပါ
+                const candidate = result.candidates?.[0]; 
                 const generatedText = candidate?.content?.parts?.[0]?.text;
 
                 if (generatedText) {
                     displayOutput(generatedText);
                 } else {
-                    // --- အမှားပြင်ဆင်ချက်- ပိုမိုအသေးစိတ်သော error ကို ပြသရန် ---
                     let detailedError = 'AI ထံမှ အကြောင်းအရာ မရရှိပါ။';
                     if (!candidate) {
                         detailedError += ' (API မှ candidate data မပါဝင်ပါ)';
@@ -323,7 +377,12 @@ Adhere strictly to the requested tone. If the headline is in Burmese, write the 
 
             } catch (error) {
                 console.error('Error calling Gemini API:', error);
-                showError(`An error occurred: ${error.message}`);
+                // API key အမှား (401/403) ကို အပေါ်မှာ သီးသန့်မဖမ်းမိခဲ့ရင် ဒီမှာ ယေဘုယျပြပါ
+                if (error.message.includes('401') || error.message.includes('403')) {
+                     showError(`API Key အမှားအယွင်း ဖြစ်နေပါသည်။ Key ကိုစစ်ဆေးပြီး စာမျက်နှာကို refresh လုပ်ပါ။`);
+                } else {
+                    showError(`An error occurred: ${error.message}`);
+                }
             } finally {
                 setLoading(false);
             }
@@ -336,18 +395,19 @@ Adhere strictly to the requested tone. If the headline is in Burmese, write the 
             try {
                 const response = await fetch(url, options);
                 // 429 (Too Many Requests) သို့မဟုတ် 5xx (Server Error) များဆိုလျှင် ထပ်ကြိုးစားပါ
+                // 401/403 (Auth errors) များကို ထပ်မကြိုးစားပါ
                 if (!response.ok && (response.status === 429 || response.status >= 500)) {
                     throw new Error(`Retryable error: ${response.status}`);
                 }
                 return response;
             } catch (error) {
-                if (retries > 0) {
+                if (retries > 0 && error.message.startsWith('Retryable')) {
                     // console.log(`Retrying... attempts left: ${retries}. Waiting ${delay}ms`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                     // နောက်တစ်ကြိမ်ကြိုးစားလျှင် delay ကို နှစ်ဆတိုးပါ
                     return fetchWithBackoff(url, options, retries - 1, delay * 2);
                 } else {
-                    // ကြိုးစားမှု အကြိမ်အရေအတွက် ပြည့်သွားလျှင် error ကို throw လုပ်ပါ
+                    // ကြိုးစားမှု အကြိမ်အရေအတွက် ပြည့်သွားလျှင် (သို့) retry မလုပ်ရမည့် error ဆိုလျှင် error ကို throw လုပ်ပါ
                     throw error;
                 }
             }
